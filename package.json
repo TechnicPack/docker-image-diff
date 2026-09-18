@@ -1,0 +1,28 @@
+{
+  "name": "@technicpack/docker-image-diff",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Explain Docker image digest changes in pull requests",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TechnicPack/docker-image-diff.git"
+  },
+  "scripts": {
+    "build": "esbuild src/index.js --bundle --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs --legal-comments=eof",
+    "test": "node --test",
+    "check": "biome check src test package.json"
+  },
+  "dependencies": {
+    "@actions/core": "^3.0.1",
+    "@actions/github": "^9.1.1",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
+    "esbuild": "^0.28.2"
+  }
+}

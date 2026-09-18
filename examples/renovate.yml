@@ -1,0 +1,33 @@
+# Copy this file to .github/workflows/docker-image-diff.yml in a consuming repository.
+# Pin TechnicPack/docker-image-diff to a full commit SHA in production.
+# Requirements: Node24-compatible runner, Docker CLI and Buildx (ubuntu-latest includes them).
+# Reads Compose image fields and Dockerfile FROM instructions; no checkout is needed.
+# Only SHA256-pinned images are inspected. Moving tags cannot identify historical images.
+# ARG/interpolation, heredocs, and unsupported Dockerfile escape directives are reported, not executed.
+# Missing version annotations/labels remain unknown; image code is never run.
+# Keep this per-PR concurrency group to serialize creation of the single maintained comment.
+# Registry hosts are exact allowlist entries, not wildcards. Docker still manages auth/CDN redirects.
+# For private registries, authenticate with a trusted login action before this step and allow the host.
+name: Describe Docker image updates
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+  pull-requests: write
+concurrency:
+  group: docker-image-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  describe:
+    if: github.event.pull_request.user.login == 'renovate[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Never check out or execute the PR branch in this privileged workflow.
+      # Public registries need no additional secrets. Do not use secrets: inherit.
+      - uses: TechnicPack/docker-image-diff@v1
+        with:
+          allowed-registries: docker.io,ghcr.io,quay.io
+          # comment: 'false' produces only a job summary and needs no write permission.
+          # max-images: '30' bounds unique pinned image lookups.

@@ -1,0 +1,30 @@
+name: Docker Image Diff
+author: TechnicPack
+description: Explain pinned Docker image changes with version and platform comparisons in one pull request comment.
+branding:
+  icon: layers
+  color: blue
+inputs:
+  github-token:
+    description: GitHub token with contents read and pull-requests write permissions. No personal access token is needed.
+    required: true
+    default: ${{ github.token }}
+  allowed-registries:
+    description: Comma or newline separated exact registry hosts permitted for metadata inspection. Only configure trusted registries.
+    default: docker.io,ghcr.io,quay.io
+  comment:
+    description: Create or update the PR comment. Set false for a read-only report in the job summary.
+    default: 'true'
+  max-images:
+    description: Maximum number of unique pinned image references to inspect (1–100). Excess references are reported as skipped.
+    default: '30'
+outputs:
+  changes:
+    description: Number of changed image references discovered.
+  comment-url:
+    description: URL of the maintained PR comment, or empty when commenting is disabled or unnecessary.
+  report:
+    description: Markdown comparison report.
+runs:
+  using: node24
+  main: dist/index.cjs
