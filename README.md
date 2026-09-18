@@ -151,6 +151,8 @@ npm run build
 
 The action executes the committed `dist/index.cjs` bundle. Include regenerated bundle changes with source/dependency changes. CI checks lint, regression tests, and that rebuilding produces the committed bundle.
 
+Renovate manages npm dependencies and GitHub Actions using `config:best-practices`. For dependency PRs, run `npm ci` and `npm run build` on a trusted workstation after reviewing the changes, and commit any bundle changes to the PR branch. CI deliberately rejects a stale bundle rather than running untrusted PR code with write permissions.
+
 Tests cover parsing ambiguity, unresolved variables, registry boundaries, missing metadata, platform matching, safe rendering, and comment updates. Registry fixtures make the unit suite deterministic; live comparisons are separate from the unit suite.
 
 ## License
