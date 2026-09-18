@@ -32,14 +32,30 @@ function imageCode(reference) {
   return `<code>${text}</code>`;
 }
 
-function renderComparison({ change, before, after, warnings }) {
-  const lines = [
-    `### ${escapeMarkdown(change.file)} — ${escapeMarkdown(change.location)}`,
-    '',
+function renderComparison({ change, before, after, warnings }, locations) {
+  const lines = [];
+  if (locations.length === 1) {
+    lines.push(
+      `### ${escapeMarkdown(change.file)} — ${escapeMarkdown(change.location)}`,
+      '',
+    );
+  } else {
+    lines.push(
+      '### Shared image update',
+      '',
+      '**Locations:**',
+      ...locations.map(
+        ({ file, location }) =>
+          `- ${escapeMarkdown(file)} — ${escapeMarkdown(location)}`,
+      ),
+      '',
+    );
+  }
+  lines.push(
     `**Before:** ${change.before ? imageCode(change.before) : 'Not present'}`,
     `**After:** ${change.after ? imageCode(change.after) : 'Not present'}`,
     '',
-  ];
+  );
   const oldPlatforms = new Map(
     before?.platforms.map((platform) => [platform.platform, platform]) ?? [],
   );
@@ -129,17 +145,38 @@ export function renderReport(comparisons, { warnings = [], headSha, baseSha }) {
     `Compared PR head \`${headSha}\` against merge base \`${baseSha}\`.`,
     '',
   ];
+  const groups = new Map();
+  for (const comparison of comparisons) {
+    const { change } = comparison;
+    const key = JSON.stringify([change.before, change.after]);
+    const group = groups.get(key);
+    if (group) {
+      group.locations.push(change);
+      for (const warning of comparison.warnings) group.warnings.add(warning);
+    } else {
+      groups.set(key, {
+        comparison,
+        locations: [change],
+        warnings: new Set(comparison.warnings),
+      });
+    }
+  }
+  let remainingChanges = comparisons.length;
   let length = lines.join('\n').length;
-  for (const [index, comparison] of comparisons.entries()) {
-    const section = renderComparison(comparison);
+  for (const group of groups.values()) {
+    const section = renderComparison(
+      { ...group.comparison, warnings: [...group.warnings] },
+      group.locations,
+    );
     if (length + section.length > MAX_REPORT_LENGTH - 3000) {
       lines.push(
-        `Report size limit reached; ${comparisons.length - index} image change(s) omitted. Narrow the pull request to see the remaining comparisons.`,
+        `Report size limit reached; ${remainingChanges} image change(s) omitted. Narrow the pull request to see the remaining comparisons.`,
       );
       break;
     }
     lines.push(section);
     length += section.length + 1;
+    remainingChanges -= group.locations.length;
   }
   if (!comparisons.length)
     lines.push(

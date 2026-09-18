@@ -56,12 +56,14 @@ Set `comment: 'false'` to produce only the job summary and step outputs. The wor
 
 ## What the comment shows
 
-For each changed image reference:
+For each distinct before/after image transition:
 
-- The file, Compose service or Dockerfile stage, and before/after references.
+- All affected files, Compose services or Dockerfile stages, and before/after references.
 - Each platform's version metadata and whether its image manifest digest changed.
 - Changes to published base-image names/digests and source revisions/URLs.
 - Explicit notices for unsupported references, missing metadata, or failed inspections.
+
+Identical before/after references share one comparison, with every affected location listed. Different source or destination references remain separate.
 
 A typical comparison looks like this:
 

@@ -92,3 +92,45 @@ test('missing version labels remain unknown even when an image has a numeric tag
     /\| linux\/amd64 \| Not provided \| Not provided \| Yes \|/,
   );
 });
+
+test('identical image transitions share one comparison while retaining every location', async () => {
+  const changes = [
+    { ...change, file: 'Dockerfile', location: 'stage:deps' },
+    { ...change, file: 'Dockerfile', location: 'stage:1' },
+    { ...change, file: 'compose.yml', location: 'service:worker' },
+  ];
+  const comparisons = await compareImages(changes, options, async (image) => ({
+    image,
+    platforms: [
+      { platform: 'linux/amd64', digest: image === old ? 'old' : 'new' },
+    ],
+    warnings: ['No version label was found.'],
+  }));
+  const report = renderReport(comparisons, context);
+  assert.equal(report.match(/\| Platform \|/g)?.length, 1);
+  assert.equal(report.match(/\*\*Before:\*\*/g)?.length, 1);
+  assert.equal(report.match(/\*\*After:\*\*/g)?.length, 1);
+  assert.match(report, /Dockerfile — stage:deps/);
+  assert.match(report, /Dockerfile — stage:1/);
+  assert.match(report, /compose\\\.yml — service:worker/);
+  assert.equal(report.match(/\*\*Notice:\*\*/g)?.length, 2);
+});
+
+test('a different source or destination image keeps its own comparison', () => {
+  const other = `mariadb:lts@sha256:${'c'.repeat(64)}`;
+  const comparisons = [
+    { ...change, location: 'service:first' },
+    { ...change, location: 'service:second', before: other },
+    { ...change, location: 'service:third', after: other },
+  ].map((entry) => ({
+    change: entry,
+    before: { platforms: [{ platform: 'linux/amd64', digest: entry.before }] },
+    after: { platforms: [{ platform: 'linux/amd64', digest: entry.after }] },
+    warnings: [],
+  }));
+  const report = renderReport(comparisons, context);
+  assert.equal(report.match(/\| Platform \|/g)?.length, 3);
+  for (const entry of comparisons) {
+    assert.ok(report.includes(entry.change.location));
+  }
+});
