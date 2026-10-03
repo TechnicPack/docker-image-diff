@@ -23,7 +23,7 @@
     "yaml": "^2.9.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.14",
+    "@biomejs/biome": "2.5.15",
     "esbuild": "0.28.2"
   }
 }
