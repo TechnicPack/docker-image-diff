@@ -142,7 +142,7 @@ export function renderReport(comparisons, { warnings = [], headSha, baseSha }) {
     COMMENT_MARKER,
     '## Docker image changes',
     '',
-    `Compared PR head \`${headSha}\` against merge base \`${baseSha}\`.`,
+    `Compared head \`${headSha}\` against merge base \`${baseSha}\`.`,
     '',
   ];
   const groups = new Map();

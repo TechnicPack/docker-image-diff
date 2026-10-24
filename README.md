@@ -140,6 +140,27 @@ The registry allowlist restricts image reference hosts. It is **not** a network 
 
 For private images, authenticate with a trusted registry-login action before this action and explicitly allow that registry host. Scope credentials to the required registry; do not forward unrelated secrets. The caller remains responsible for deciding which PRs may use those credentials. The default comment identity is `github-actions[bot]`; use the workflow's `GITHUB_TOKEN` rather than a personal token to maintain the same comment identity.
 
+## GitLab bot merge requests
+
+The standalone `dist/gitlab.cjs` helper uses the same discovery, comparison and report engine as the GitHub action. Run it from a **trusted scheduled or post-Renovate central runner**, with the existing bot's API token supplied as `GITLAB_TOKEN`. Never run it in an MR pipeline, use MR pipeline credentials, check out an MR, or execute MR-controlled code. The token needs API access to read the target project and any source fork and to write MR notes.
+
+```sh
+node dist/gitlab.cjs \
+  --api-url https://git.technicpack.net/api/v4 \
+  --project technic/platformapi \
+  --allowed-registries docker.io
+```
+
+Runtime requirements are **Node.js 24 or newer, Docker CLI and Docker Buildx**. Download the committed bundle from a reviewed full helper commit SHA and verify its pinned SHA256 checksum before running it. This helper does not need a checkout or npm installation. Keep the runner's `resource_group: renovate` (or equivalent serialization) around Renovate and reporting to prevent concurrent note creation. Repository scope and opt-in belong to the trusted caller; one invocation accepts exactly one namespaced project, not a repository list or autodiscovery. `--max-images` defaults to `30` and accepts integers from `1` to `100`; the registry allowlist is required.
+
+The helper authenticates with `GET /user`, lists every open MR authored by that user, and independently verifies authorship before inspection and publication. It reads supported files at the MR's immutable `diff_refs.base_sha` merge base and `head_sha`, using the source project for fork heads. It never uses the latest target branch. A matching [GitLab diff version](https://docs.gitlab.com/api/merge_requests/#retrieve-a-specific-merge-request-diff-version) must have `state: collected` and an exact `real_size`/file-list count; overflow, truncated or mismatched snapshots are rejected. Repository file responses are checked against the requested path/ref and their content hash.
+
+Only notes authored by the authenticated user and beginning with the helper marker are updated; human marker notes are ignored. Existing reports are updated when image changes disappear, but unrelated MRs receive no new empty report. The helper rechecks the MR's open state, author, source project and base/head/start SHAs immediately before a write. GitLab does not provide an atomic conditional note write, so caller serialization is still required.
+
+API requests use HTTPS, refuse redirects and stay inside the configured API origin and supported routes. Each request is limited to 30 seconds and 8 MiB, files to 1 MiB, pagination to 100 pages of 100 entries, and each invocation to 2,000 API requests. Any incomplete pagination, API failure or incomplete definition parsing exits nonzero; parsing notices are preserved in reports rather than inventing additions/removals. Unresolved individual image expressions remain explicit skips, and registry inspection failures remain report notices as for GitHub. GitLab/Renovate/CI tokens are excluded from Docker subprocess environments; only explicit runtime, Docker, TLS and proxy settings are forwarded. Docker's trusted configuration can still supply registry credentials.
+
+No deployment, merge, approval or pipeline API is called. GitHub action inputs, outputs and consumer workflows are unchanged.
+
 ## Development
 
 Use Node.js 24 or newer:
@@ -151,7 +172,7 @@ npm test
 npm run build
 ```
 
-The action executes the committed `dist/index.cjs` bundle. Include regenerated bundle changes with source/dependency changes. CI checks lint, regression tests, and that rebuilding produces the committed bundle.
+The GitHub action executes the committed `dist/index.cjs` bundle; the GitLab CLI executes `dist/gitlab.cjs`. `npm run build` regenerates both. Include regenerated bundle changes with source/dependency changes. CI checks lint, regression tests, and that rebuilding produces the committed bundles.
 
 Renovate manages npm dependencies and GitHub Actions using `config:best-practices`. For dependency PRs, run `npm ci` and `npm run build` on a trusted workstation after reviewing the changes, and commit any bundle changes to the PR branch. CI deliberately rejects a stale bundle rather than running untrusted PR code with write permissions.
 

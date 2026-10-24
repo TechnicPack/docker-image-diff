@@ -22,5 +22,5 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run build
-      - name: Check committed action bundle
-        run: git diff --exit-code -- dist/index.cjs
+      - name: Check committed bundles
+        run: git diff --exit-code -- dist/index.cjs dist/gitlab.cjs
