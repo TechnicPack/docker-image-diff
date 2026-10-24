@@ -13,7 +13,7 @@
     "url": "https://github.com/TechnicPack/docker-image-diff.git"
   },
   "scripts": {
-    "build": "esbuild src/index.js --bundle --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs --legal-comments=eof",
+    "build": "esbuild src/index.js --bundle --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs --legal-comments=eof && esbuild src/gitlab-index.js --bundle --platform=node --target=node24 --format=cjs --outfile=dist/gitlab.cjs --legal-comments=eof",
     "test": "node --test",
     "check": "biome check src test package.json"
   },
