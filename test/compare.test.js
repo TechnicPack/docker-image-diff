@@ -75,6 +75,62 @@ test('report compares platform digests and neutralizes publisher markup and ment
   assert.match(report, /&lt;script&gt;&#64;&#8203;everyone\\\|/);
 });
 
+function sourceReport(before, after) {
+  const inspection = (source) => ({
+    platforms: [{ platform: 'linux/amd64', digest: 'same', source }],
+  });
+  return renderReport(
+    [
+      {
+        change,
+        before: inspection(before),
+        after: inspection(after),
+        warnings: [],
+      },
+    ],
+    context,
+  );
+}
+
+test('source links preserve URL punctuation and full destinations', () => {
+  const before = 'http://example.com/my_repo';
+  const after = `https://example.com/my_repo/(release)?a=1&b=${'x'.repeat(180)}#tag`;
+  const report = sourceReport(before, after);
+  assert.ok(report.includes('](http://example.com/my_repo)'));
+  assert.ok(
+    report.includes(
+      `](https://example.com/my_repo/%28release%29?a=1&amp;b=${'x'.repeat(180)}#tag)`,
+    ),
+  );
+});
+
+test('unsafe or malformed source URLs remain escaped text', () => {
+  for (const source of [
+    'javascript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'https://',
+    'https://example.com/\n@everyone',
+    '[click](javascript:alert(1))',
+  ]) {
+    const report = sourceReport(undefined, source);
+    assert.doesNotMatch(report, /\]\(|<script>|@everyone/);
+    assert.match(report, /Not provided → /);
+  }
+});
+
+test('source URL markup cannot break out of its link', () => {
+  const report = sourceReport(
+    undefined,
+    'https://example.com/"><img>[x](y)|@everyone',
+  );
+  assert.ok(
+    report.includes(
+      '](https://example.com/%22%3E%3Cimg%3E%5Bx%5D%28y%29%7C@everyone)',
+    ),
+  );
+  assert.doesNotMatch(report, /<img>/);
+});
+
 test('missing version labels remain unknown even when an image has a numeric tag', () => {
   const report = renderReport(
     [

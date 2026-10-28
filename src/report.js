@@ -21,6 +21,27 @@ function metadata(value) {
   return value ? escapeMarkdown(value, 160) : 'Not provided';
 }
 
+function sourceMetadata(value) {
+  if (
+    typeof value !== 'string' ||
+    !/^https?:\/\//i.test(value) ||
+    /[\p{Cc}\p{Cf}]/u.test(value)
+  )
+    return metadata(value);
+  const url = URL.parse(value);
+  if (!url || !['http:', 'https:'].includes(url.protocol))
+    return metadata(value);
+  // Encode Markdown delimiters in the destination, not backslash escapes.
+  // Only the label is truncated; the link must retain the full source URL.
+  const destination = url.href
+    .replace(
+      /[\\`()[\]|]/g,
+      (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+    )
+    .replace(/&/g, '&amp;');
+  return `[${metadata(value)}](${destination})`;
+}
+
 function imageCode(reference) {
   const text = String(reference)
     .replace(/[\p{Cc}\p{Cf}]/gu, ' ')
@@ -105,8 +126,9 @@ function renderComparison({ change, before, after, warnings }, locations) {
         ['source', 'Source'],
       ]) {
         if (old[field] === next[field]) continue;
+        const format = field === 'source' ? sourceMetadata : metadata;
         lines.push(
-          `- **${escapeMarkdown(platform)} — ${title}:** ${metadata(old[field])} → ${metadata(next[field])}`,
+          `- **${escapeMarkdown(platform)} — ${title}:** ${format(old[field])} → ${format(next[field])}`,
         );
       }
     }

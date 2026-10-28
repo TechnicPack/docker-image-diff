@@ -60,7 +60,7 @@ For each distinct before/after image transition:
 
 - All affected files, Compose services or Dockerfile stages, and before/after references.
 - Each platform's version metadata and whether its image manifest digest changed.
-- Changes to published base-image names/digests and source revisions/URLs.
+- Changes to published base-image names/digests and source revisions/URLs. Valid HTTP(S) source URLs are clickable links with full destinations; other source values remain escaped text.
 - Explicit notices for unsupported references, missing metadata, or failed inspections.
 
 Identical before/after references share one comparison, with every affected location listed. Different source or destination references remain separate.

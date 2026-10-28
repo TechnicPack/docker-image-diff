@@ -32476,6 +32476,18 @@ function escapeMarkdown(value, limit = 240) {
 function metadata2(value) {
   return value ? escapeMarkdown(value, 160) : "Not provided";
 }
+function sourceMetadata(value) {
+  if (typeof value !== "string" || !/^https?:\/\//i.test(value) || /[\p{Cc}\p{Cf}]/u.test(value))
+    return metadata2(value);
+  const url = URL.parse(value);
+  if (!url || !["http:", "https:"].includes(url.protocol))
+    return metadata2(value);
+  const destination = url.href.replace(
+    /[\\`()[\]|]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+  ).replace(/&/g, "&amp;");
+  return `[${metadata2(value)}](${destination})`;
+}
 function imageCode(reference) {
   const text = String(reference).replace(/[\p{Cc}\p{Cf}]/gu, " ").slice(0, 512).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return `<code>${text}</code>`;
@@ -32544,8 +32556,9 @@ function renderComparison({ change, before, after, warnings }, locations) {
         ["source", "Source"]
       ]) {
         if (old[field] === next[field]) continue;
+        const format = field === "source" ? sourceMetadata : metadata2;
         lines.push(
-          `- **${escapeMarkdown(platform3)} \u2014 ${title}:** ${metadata2(old[field])} \u2192 ${metadata2(next[field])}`
+          `- **${escapeMarkdown(platform3)} \u2014 ${title}:** ${format(old[field])} \u2192 ${format(next[field])}`
         );
       }
     }
