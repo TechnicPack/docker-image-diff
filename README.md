@@ -153,6 +153,22 @@ node dist/gitlab.cjs \
 
 Runtime requirements are **Node.js 24 or newer, Docker CLI and Docker Buildx**. Download the committed bundle from a reviewed full helper commit SHA and verify its pinned SHA256 checksum before running it. This helper does not need a checkout or npm installation. Keep the runner's `resource_group: renovate` (or equivalent serialization) around Renovate and reporting to prevent concurrent note creation. Repository scope and opt-in belong to the trusted caller; one invocation accepts exactly one namespaced project, not a repository list or autodiscovery. `--max-images` defaults to `30` and accepts integers from `1` to `100`; the registry allowlist is required.
 
+### Container distribution
+
+The public `ghcr.io/technicpack/docker-image-diff:v1.2.0` image packages the GitLab bundle, Node.js 24, CA certificates, Docker CLI and Buildx for **Linux/amd64**. Pin both its version tag and published manifest digest in production. No Docker daemon, socket mount, npm installation or runtime package installation is needed:
+
+```sh
+docker run --rm -e GITLAB_TOKEN \
+  ghcr.io/technicpack/docker-image-diff:v1.2.0 \
+  --api-url https://git.technicpack.net/api/v4 \
+  --project technic/platformapi \
+  --allowed-registries docker.io
+```
+
+For GitLab CI, clear the image entrypoint with `entrypoint: [""]`. A trusted local policy wrapper can invoke `node /opt/docker-image-diff/gitlab.cjs` while retaining its own protected-context, repository scope, environment and timeout checks. The image runs as root, matching the Node base image. It contains neither caller policy nor bot credentials.
+
+Only immutable `vX.Y.Z` container tags are published; there are no `latest` or major-version container aliases. Renovate's native `gitlabci` manager tracks literal CI image references, including digest pins. The GitHub Action and standalone bundle remain independently supported.
+
 The helper authenticates with `GET /user`, lists every open MR authored by that user, and independently verifies authorship before inspection and publication. It reads supported files at the MR's immutable `diff_refs.base_sha` merge base and `head_sha`, using the source project for fork heads. It never uses the latest target branch. A matching [GitLab diff version](https://docs.gitlab.com/api/merge_requests/#retrieve-a-specific-merge-request-diff-version) must have `state: collected` and an exact `real_size`/file-list count; overflow, truncated or mismatched snapshots are rejected. Repository file responses are checked against the requested path/ref and their content hash.
 
 Only notes authored by the authenticated user and beginning with the helper marker are updated; human marker notes are ignored. Existing reports are updated when image changes disappear, but unrelated MRs receive no new empty report. The helper rechecks the MR's open state, author, source project and base/head/start SHAs immediately before a write. GitLab does not provide an atomic conditional note write, so caller serialization is still required.
@@ -177,6 +193,14 @@ The GitHub action executes the committed `dist/index.cjs` bundle; the GitLab CLI
 Renovate manages npm dependencies and GitHub Actions using `config:best-practices`. For dependency PRs, run `npm ci` and `npm run build` on a trusted workstation after reviewing the changes, and commit any bundle changes to the PR branch. CI deliberately rejects a stale bundle rather than running untrusted PR code with write permissions.
 
 Tests cover parsing ambiguity, unresolved variables, registry boundaries, missing metadata, platform matching, safe rendering, and comment updates. Registry fixtures make the unit suite deterministic; live comparisons are separate from the unit suite.
+
+CI also builds and exercises the container's real entrypoint and daemonless registry traversal. Run `docker build --platform linux/amd64 --build-arg VERSION=1.2.0 --build-arg REVISION="$(git rev-parse HEAD)" -t docker-image-diff:ci .` followed by `node scripts/container-smoke.mjs docker-image-diff:ci` locally. The smoke deliberately expects missing-token failure offline, then inspects a pinned public image index, its Linux/amd64 manifest and config.
+
+### Releases
+
+Update `package.json` and `package-lock.json`, commit and pass main CI before pushing a lightweight `vX.Y.Z` tag. CI requires the tag to match the package version and be reachable from remote `main`. Verification saves the exact tested image; a separate package-write job loads and publishes that archive without rebuilding. Existing container versions are never overwritten: corrections require a new patch release. The workflow summary records the published digest and revision.
+
+First publication requires making the repository-linked GHCR package public. Before consumer cutover, pull anonymously using an empty temporary `DOCKER_CONFIG`, run the same container smoke against the version-and-digest reference, and verify the OCI revision matches the release commit. Only then create the GitHub release and update the movable Git `v1` action tag with an explicit force-with-lease. Never supply GHCR credentials to consumers to bypass this public-pull gate.
 
 ## License
 
