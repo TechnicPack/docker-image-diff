@@ -1,6 +1,6 @@
 {
   "name": "@technicpack/docker-image-diff",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "Explain Docker image digest changes in pull requests",
   "license": "MIT",

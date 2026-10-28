@@ -58,7 +58,7 @@ Set `comment: 'false'` to produce only the job summary and step outputs. The wor
 
 For each distinct before/after image transition:
 
-- All affected files, Compose services or Dockerfile stages, and before/after references.
+- All affected files, Compose services or Dockerfile stages, and before/after references on separate lines.
 - Each platform's version metadata and whether its image manifest digest changed.
 - Changes to published base-image names/digests and source revisions/URLs. Valid HTTP(S) source URLs are clickable links with full destinations; other source values remain escaped text.
 - Explicit notices for unsupported references, missing metadata, or failed inspections.

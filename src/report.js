@@ -74,6 +74,7 @@ function renderComparison({ change, before, after, warnings }, locations) {
   }
   lines.push(
     `**Before:** ${change.before ? imageCode(change.before) : 'Not present'}`,
+    '',
     `**After:** ${change.after ? imageCode(change.after) : 'Not present'}`,
     '',
   );
