@@ -134,6 +134,8 @@ Registry names are not URL patterns or wildcards. Nondefault ports must be expli
 
 Use a Node.js 24-compatible GitHub Actions runner with Docker CLI and Buildx installed. GitHub-hosted `ubuntu-latest` supplies these tools. The action uses `docker buildx imagetools inspect`; it does not build, pull image layers, or run a container.
 
+GitHub Actions still requires `runs.using: node24`: the [official runner's supported JavaScript runtimes](https://github.com/actions/runner/blob/main/src/Runner.Worker/ActionManifestManager.cs) do not include Node.js 26. The GitHub bundle therefore targets Node.js 24, while development, CI, and the standalone GitLab bundle use Node.js 26 LTS. The package engine range includes both supported majors for this split.
+
 PR files and image metadata are untrusted input. The implementation uses shell-free subprocess arguments, validates image references, restricts registry hosts, verifies raw manifest digests, and neutralizes publisher-supplied Markdown and mentions. It does not execute repository scripts or resolve local Compose environments.
 
 The registry allowlist restricts image reference hosts. It is **not** a network sandbox: Docker still handles authentication endpoints, CDN redirects, and any mirrors configured on the runner. Only allow trusted registries and use a trusted runner configuration.
@@ -151,9 +153,11 @@ node dist/gitlab.cjs \
   --allowed-registries docker.io
 ```
 
-Runtime requirements are **Node.js 24 or newer, Docker CLI and Docker Buildx**. Download the committed bundle from a reviewed full helper commit SHA and verify its pinned SHA256 checksum before running it. This helper does not need a checkout or npm installation. Keep the runner's `resource_group: renovate` (or equivalent serialization) around Renovate and reporting to prevent concurrent note creation. Repository scope and opt-in belong to the trusted caller; one invocation accepts exactly one namespaced project, not a repository list or autodiscovery. `--max-images` defaults to `30` and accepts integers from `1` to `100`; the registry allowlist is required.
+Runtime requirements are **Node.js 26 LTS, Docker CLI and Docker Buildx**. Download the committed bundle from a reviewed full helper commit SHA and verify its pinned SHA256 checksum before running it. This helper does not need a checkout or npm installation. Keep the runner's `resource_group: renovate` (or equivalent serialization) around Renovate and reporting to prevent concurrent note creation. Repository scope and opt-in belong to the trusted caller; one invocation accepts exactly one namespaced project, not a repository list or autodiscovery. `--max-images` defaults to `30` and accepts integers from `1` to `100`; the registry allowlist is required.
 
 ### Container distribution
+
+Images built from the current Dockerfile use a digest-pinned Node.js 26 Alpine base. Existing published immutable releases are unchanged; the example below uses the older Node.js 24-based release.
 
 The public `ghcr.io/technicpack/docker-image-diff:v1.2.0` image packages the GitLab bundle, Node.js 24, CA certificates, Docker CLI and Buildx for **Linux/amd64**. Pin both its version tag and published manifest digest in production. No Docker daemon, socket mount, npm installation or runtime package installation is needed:
 
@@ -179,7 +183,7 @@ No deployment, merge, approval or pipeline API is called. GitHub action inputs, 
 
 ## Development
 
-Use Node.js 24 or newer:
+Use Node.js 26 LTS (pinned in `.node-version`):
 
 ```sh
 npm ci

@@ -16,7 +16,7 @@ function docker(args, expectedStatus = 0) {
 }
 
 console.log(docker(['run', '--rm', '--entrypoint', 'sh', image, '-ec',
-  'node --version; node -e "if (parseInt(process.versions.node) < 24) process.exit(1)"; docker --version; docker buildx version; test ! -S /var/run/docker.sock',
+  'node --version; node -e "if (parseInt(process.versions.node) !== 26) process.exit(1)"; docker --version; docker buildx version; test ! -S /var/run/docker.sock',
 ]));
 
 const failure = docker(['run', '--rm', '--network', 'none', image,
