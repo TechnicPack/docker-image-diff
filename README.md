@@ -157,13 +157,13 @@ Runtime requirements are **Node.js 26 LTS, Docker CLI and Docker Buildx**. Downl
 
 ### Container distribution
 
-Images built from the current Dockerfile use a digest-pinned Node.js 26 Alpine base. Existing published immutable releases are unchanged; the example below uses the older Node.js 24-based release.
+The `v1.2.2` release uses a digest-pinned Node.js 26 Alpine base. Existing published immutable releases are unchanged.
 
-The public `ghcr.io/technicpack/docker-image-diff:v1.2.0` image packages the GitLab bundle, Node.js 24, CA certificates, Docker CLI and Buildx for **Linux/amd64**. Pin both its version tag and published manifest digest in production. No Docker daemon, socket mount, npm installation or runtime package installation is needed:
+The public `ghcr.io/technicpack/docker-image-diff:v1.2.2` image packages the GitLab bundle, Node.js 26, CA certificates, Docker CLI and Buildx for **Linux/amd64**. Pin both its version tag and published manifest digest in production. No Docker daemon, socket mount, npm installation or runtime package installation is needed:
 
 ```sh
 docker run --rm -e GITLAB_TOKEN \
-  ghcr.io/technicpack/docker-image-diff:v1.2.0 \
+  ghcr.io/technicpack/docker-image-diff:v1.2.2@sha256:1e0c1033574e1f5e02671dfd0db050168772963513cb933ee5803b1aa39b3137 \
   --api-url https://git.technicpack.net/api/v4 \
   --project technic/platformapi \
   --allowed-registries docker.io
@@ -198,7 +198,7 @@ Renovate manages npm dependencies and GitHub Actions using `config:best-practice
 
 Tests cover parsing ambiguity, unresolved variables, registry boundaries, missing metadata, platform matching, safe rendering, and comment updates. Registry fixtures make the unit suite deterministic; live comparisons are separate from the unit suite.
 
-CI also builds and exercises the container's real entrypoint and daemonless registry traversal. Run `docker build --platform linux/amd64 --build-arg VERSION=1.2.0 --build-arg REVISION="$(git rev-parse HEAD)" -t docker-image-diff:ci .` followed by `node scripts/container-smoke.mjs docker-image-diff:ci` locally. The smoke deliberately expects missing-token failure offline, then inspects a pinned public image index, its Linux/amd64 manifest and config.
+CI also builds and exercises the container's real entrypoint and daemonless registry traversal. Run `docker build --platform linux/amd64 --build-arg VERSION=1.2.2 --build-arg REVISION="$(git rev-parse HEAD)" -t docker-image-diff:ci .` followed by `node scripts/container-smoke.mjs docker-image-diff:ci` locally. The smoke deliberately expects missing-token failure offline, then inspects a pinned public image index, its Linux/amd64 manifest and config.
 
 ### Releases
 
